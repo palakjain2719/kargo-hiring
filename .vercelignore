@@ -1,0 +1,8 @@
+# Never upload secrets or local candidate data
+.env
+.env.local
+.env.*.local
+.data
+.vercel
+node_modules
+.next
