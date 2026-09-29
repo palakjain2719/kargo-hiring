@@ -9,7 +9,7 @@ export const piiOf = (c: Candidate): PrivateIds => ({ name: c.private_name, emai
 
 /** Ingestion: separate PII locally, store it apart from the anonymised content, queue for AI. */
 export async function ingestCv(opts: { batchId: string; role: Role; fileName: string; text: string }) {
-  const pii = extractPii(opts.text);
+  const pii = extractPii(opts.text, opts.fileName);
   const repo = getRepo();
   const c = await repo.createCandidate({
     batch_id: opts.batchId,

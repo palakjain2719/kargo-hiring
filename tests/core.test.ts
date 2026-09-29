@@ -116,3 +116,13 @@ test("email placeholders are detected", () => {
   assert.deepEqual(unresolvedPlaceholders("Start: [Start date]. Hi {{candidate_name}}"), ["[Start date]", "{{candidate_name}}"]);
   assert.deepEqual(unresolvedPlaceholders("All filled in."), []);
 });
+
+test("pii: name falls back to the filename and is redacted from the text", async () => {
+  const { nameFromFileName } = await import("../src/lib/pii");
+  assert.equal(nameFromFileName("pm_03_deepika_nair.pdf"), "Deepika Nair");
+  assert.equal(nameFromFileName("01_rohan_mehta.pdf"), "Rohan Mehta");
+  assert.equal(nameFromFileName("resume_final.pdf"), null);
+  const p = extractPii("SUMMARY\nStrategy lead. Mehta's framework was adopted by the ops team across 3 regions.\n".repeat(3), "01_rohan_mehta.pdf");
+  assert.equal(p.name, "Rohan Mehta");
+  assert.ok(!/mehta/i.test(p.anonymised));
+});

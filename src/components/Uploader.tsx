@@ -12,6 +12,8 @@ interface Item {
 }
 interface Progress { total: number; queued: number; processing: number; completed: number; failed: number; items: Item[] }
 
+// Pre-fills the role only when the filename says so ("pm_…", "spm_…"). Arjun can change it before uploading.
+const roleFromName = (n: string): Role | "" => (/^spm[_\-\s]/i.test(n) ? "SPM" : /^pm[_\-\s]/i.test(n) ? "PM" : "");
 const CHUNK = 5; // files per upload request (keeps each request under serverless body limits)
 const WORKERS = 2; // parallel /api/process loops; each claims up to 3 CVs
 
@@ -29,7 +31,7 @@ export function Uploader() {
   const addFiles = (list: FileList | null) => {
     if (!list) return;
     const accepted = [...list].filter((f) => /\.(pdf|docx|txt|md)$/i.test(f.name));
-    setPending((p) => [...p, ...accepted.filter((f) => !p.some((x) => x.file.name === f.name && x.file.size === f.size)).map((file) => ({ file, role: "" as const }))]);
+    setPending((p) => [...p, ...accepted.filter((f) => !p.some((x) => x.file.name === f.name && x.file.size === f.size)).map((file) => ({ file, role: roleFromName(file.name) }))]);
   };
 
   const refresh = useCallback(async () => {

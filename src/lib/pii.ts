@@ -86,7 +86,19 @@ export function redactName(text: string, name: string): { text: string; count: n
   return { text: out, count };
 }
 
-export function extractPii(rawText: string): PiiResult {
+/**
+ * Fallback when the CV text carries no name: "pm_03_deepika_nair.pdf" / "01_rohan-mehta.docx" → "Deepika Nair".
+ * The filename is never sent to the AI; this only fills the private record and drives redaction.
+ */
+export function nameFromFileName(fileName: string): string | null {
+  const base = fileName.replace(/\.[a-z0-9]+$/i, "").replace(/^(?:s?pm[_\-\s]+)?\d+[_\-\s]+/i, "");
+  const words = base.split(/[_\-\s]+/).filter(Boolean);
+  if (words.length < 2 || words.length > 4 || words.some((w) => !/^[a-z]+$/i.test(w))) return null;
+  if (words.some((w) => HEADING_WORDS.has(w.toLowerCase()))) return null;
+  return words.map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+}
+
+export function extractPii(rawText: string, fileName?: string): PiiResult {
   const text = rawText.replace(/\r\n/g, "\n").replace(/ /g, " ");
   const redactions: Record<string, number> = {};
   const bump = (k: string, n = 1) => (redactions[k] = (redactions[k] ?? 0) + n);
@@ -100,7 +112,8 @@ export function extractPii(rawText: string): PiiResult {
     return d.length >= 9 && d.length <= 15 && !/^(19|20)\d{2}\s*[-–]\s*(19|20)\d{2}$/.test(p.trim());
   });
   const phone = phoneCandidates[0]?.trim() ?? null;
-  const name = detectName(text);
+  const fileNameGuess = fileName ? nameFromFileName(fileName) : null;
+  const name = detectName(text) ?? fileNameGuess;
 
   let anon = text;
   anon = anon.replace(EMAIL_RE, () => (bump("email"), "[EMAIL REDACTED]"));
@@ -113,6 +126,12 @@ export function extractPii(rawText: string): PiiResult {
   anon = anon.replace(NAME_LABEL_RE, () => "Name: [CANDIDATE]");
   if (name) {
     const r = redactName(anon, name);
+    anon = r.text;
+    if (r.count) bump("name", r.count);
+  }
+  // If the header name and filename disagree, redact the filename's name too.
+  if (fileNameGuess && fileNameGuess !== name) {
+    const r = redactName(anon, fileNameGuess);
     anon = r.text;
     if (r.count) bump("name", r.count);
   }

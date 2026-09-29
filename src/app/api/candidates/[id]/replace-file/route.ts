@@ -16,7 +16,7 @@ export const POST = handle(async (req: Request, ctx: { params: Promise<{ id: str
   if (!(file instanceof File)) return fail("No file");
   try {
     const text = await extractText(file.name, new Uint8Array(await file.arrayBuffer()));
-    const pii = extractPii(text);
+    const pii = extractPii(text, file.name);
     await repo.updateCandidate(id, {
       original_file_name: file.name,
       private_name: pii.name,
