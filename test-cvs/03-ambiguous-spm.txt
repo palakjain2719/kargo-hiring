@@ -1,0 +1,22 @@
+KAVYA IYER
+kavya.iyer@example.com  ·  +91-99876-54321  ·  Bengaluru
+
+PROFILE
+Product lead who moved into product from customer operations at a freight company.
+
+EXPERIENCE
+
+Product Lead, FreightDesk (freight forwarding software) | 2021 – Present
+- Led the integration with two port community systems; the integration went live for 8 customers.
+- Decided, with the CTO, to drop an in-house rate engine and license one instead, after the first build missed two deadlines.
+- Helped improve customs document turnaround; the team reduced average processing time by around 20%.
+- Introduced a weekly product review meeting with sales and customer success.
+- Involved in resolving a data-sync incident with a large customer's ERP that caused duplicate shipments; worked with engineering and the account manager until the issue was fixed.
+
+Customer Operations Manager, BlueAnchor Logistics | 2017 – 2021
+- Managed a team of 6 handling shipment exceptions for 200+ accounts.
+- Wrote the exception-handling playbook for the team.
+- Gave feedback to the product team about recurring tracking problems customers reported.
+
+EDUCATION
+B.Sc. Statistics

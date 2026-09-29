@@ -1,0 +1,23 @@
+ANANYA DESHPANDE
+Product Manager | Pune, India
+ananya.deshpande@example.com | +91 98200 11223 | linkedin.com/in/ananya-deshpande-demo
+Address: 14 Lane 5, Koregaon Park, Pune 411001
+
+SUMMARY
+Product manager with a background in warehouse operations software. I like spending time on the floor with the people who use what we build.
+
+EXPERIENCE
+
+Product Manager, ShelfSense (warehouse management SaaS, 60 people) | 2022 – Present
+- Spent two weeks shadowing pickers and shift leads at three client warehouses after support tickets about "missing stock" doubled; found that pickers were skipping the scan step because the handheld app took 9 taps to confirm a pick.
+- Redesigned the pick-confirmation flow to 3 taps based on what I observed; mis-picks fell 38% and "missing stock" tickets dropped from 140 to 52 per month within one quarter.
+- Stopped a planned bulk-import feature after usage data showed only 4% of accounts used the existing import; redirected the sprint to barcode reliability, which was the top driver of churn in our exit interviews.
+- Created a one-page "problem brief" template (problem, evidence, who is affected, success metric) that the two other PMs and the engineering leads now use for every roadmap item; it became part of our quarterly planning process.
+- Owned a carrier-label outage that affected 11 customers: coordinated support, engineering and the carrier's API team, ran the post-mortem, and personally tracked all 7 follow-up actions to closure over the next 6 weeks, including a monitoring alert that has since caught two similar failures early.
+
+Associate Product Manager, RouteMint (logistics startup) | 2020 – 2022
+- Interviewed 25 dispatchers about route planning; learned they re-planned routes manually every morning because of late order cut-offs, so we built an automatic re-plan at 7am. Manual re-planning time dropped from 45 to 10 minutes per dispatcher per day.
+- Built a release checklist in Notion for QA and support handover that was adopted across all three product squads and is still used today.
+
+EDUCATION
+B.E. Computer Engineering, University of Pune

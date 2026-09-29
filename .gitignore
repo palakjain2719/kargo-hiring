@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+.vercel
+# secrets — never commit
+.env
+.env.local
+.env.*.local
+# local dev data store (contains candidate PII)
+.data
+*.tsbuildinfo
+next-env.d.ts

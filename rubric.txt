@@ -1,0 +1,68 @@
+KARGO HIRING RUBRIC
+Product Manager (PM) and Senior Product Manager (SPM)
+
+SOURCE PRINCIPLE
+The rubric is derived from patterns visible in the eight past hire profiles and their performance outcomes.
+It intentionally avoids years of experience, job titles, certifications, and generic requirements copied from the job descriptions.
+
+----------------------------------------
+PRODUCT MANAGER (PM)
+----------------------------------------
+
+1. Problem -> Change -> Result
+What a strong candidate looks like:
+The CV shows at least one example where the person noticed a concrete problem or friction, acted on it, and changed a process, product, or workflow. The work includes a visible result such as adoption, reduced time, fewer errors, lower support volume, or another measurable improvement. Strong evidence links the person's action to the outcome rather than only listing participation.
+Weight: 25%
+
+2. Evidence-Led Decisions
+What a strong candidate looks like:
+The CV shows decisions being changed, stopped, or prioritised because of evidence such as usage data, customer feedback, operational data, or a post-mortem. Strong candidates show the reasoning behind a decision and what happened after the decision, rather than only reporting that they delivered something.
+Weight: 20%
+
+3. Builds Repeatable Ways of Working
+What a strong candidate looks like:
+The person has created a tool, template, checklist, documentation system, scorecard, review process, or operating method that other people subsequently adopted or reused. The evidence should show that the candidate's work became a repeatable practice, not a one-off personal task.
+Weight: 20%
+
+4. Carries Ambiguous Problems Through to Closure
+What a strong candidate looks like:
+The CV contains an example of taking a messy issue across multiple people or functions from identification through resolution, including follow-up after the immediate fix. Strong evidence includes coordinating different stakeholders, handling an escalation or failure, and personally driving the remaining actions to completion.
+Weight: 20%
+
+5. Gets to the Source Before Designing the Fix
+What a strong candidate looks like:
+The candidate has evidence of directly observing, interviewing, supporting, or working alongside the people experiencing a problem, and the resulting work changed because of what was discovered. Strong evidence connects firsthand discovery to a specific product, process, or workflow change.
+Weight: 15%
+
+TOTAL: 100%
+
+----------------------------------------
+SENIOR PRODUCT MANAGER (SPM)
+----------------------------------------
+
+1. Independent Decision Ownership
+What a strong candidate looks like:
+The CV shows repeated examples where the person made consequential decisions without a senior layer making the call for them, especially when information was incomplete or the outcome was uncertain. Strong evidence shows the decision, the trade-off, and the consequence, not simply participation in a decision made by someone else.
+Weight: 30%
+
+2. Problem -> Change -> Business/Operational Result
+What a strong candidate looks like:
+The candidate has repeatedly turned a real operational, customer, or business problem into a concrete change and can quantify the result. Strong evidence connects the person's intervention to outcomes such as revenue, adoption, retention, cycle time, cost, reliability, or error reduction.
+Weight: 20%
+
+3. Evidence-Led Prioritisation and Reversal
+What a strong candidate looks like:
+The CV shows the person using evidence to decide what to pursue, what to stop, or what to change, including at least one example where new evidence caused them to reverse or materially alter an earlier direction. The candidate explains the evidence and the resulting action.
+Weight: 20%
+
+4. Creates Systems Others Run
+What a strong candidate looks like:
+The person has built a repeatable process, framework, documentation standard, operating rhythm, or team system that continued beyond the original task and was adopted by others. The strongest evidence shows the system becoming the team's normal way of working.
+Weight: 15%
+
+5. Multi-Party Resolution Under Pressure
+What a strong candidate looks like:
+The candidate has personally driven a difficult issue involving multiple stakeholders through uncertainty, pressure, or failure to a completed outcome. Strong evidence includes escalation management, incident or post-mortem ownership, cross-functional coordination, and closure of follow-up actions.
+Weight: 15%
+
+TOTAL: 100%
