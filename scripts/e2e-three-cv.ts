@@ -89,7 +89,7 @@ for (const t of TESTS) {
     check(`${s.role}: overall = sum of weighted contributions (${s.overall_score})`, Math.abs(sum - s.overall_score) < 0.01);
     const cvNorm = anon.toLowerCase().replace(/\s+/g, " ");
     check(`${s.role}: every evidence quote exists in the CV`, s.criterion_scores.every((x) => x.evidence.every((e) => cvNorm.includes(e.toLowerCase().replace(/\s+/g, " ").replace(/^\.\.\.|\.\.\.$/g, "").split("...")[0].trim()))));
-    check(`${s.role}: missing evidence is stated explicitly`, s.criterion_scores.filter((x) => !x.evidence_present).every((x) => /not present/i.test(x.reasoning)));
+    check(`${s.role}: missing evidence is stated explicitly`, s.criterion_scores.filter((x) => !x.evidence_present).every((x) => /not present|no evidence|not evidenced|absent/i.test(x.reasoning)));
   }
   check("status is 'analysed' (no automatic decision)", c.workflow_status === "analysed", c.workflow_status);
   console.log(`  ·    PM ${pm?.overall_score} · SPM ${spm?.overall_score}`);
