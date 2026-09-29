@@ -33,7 +33,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
     <>
       <PageHeader
         title="Communications"
-        sub="Every email is an individual draft. Review, edit and approve each one, then confirm sending. Nothing is sent automatically."
+        sub="Every candidate gets their own email, written and ready. Click Send and it goes."
       />
       <EmailQueue
         tab={tab === "rejection" ? "rejection" : "offer"}

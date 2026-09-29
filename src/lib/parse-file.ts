@@ -26,7 +26,8 @@ export async function extractText(fileName: string, data: Uint8Array): Promise<s
     if (e instanceof ParseError) throw e;
     throw new ParseError(`Could not read file: ${e instanceof Error ? e.message : String(e)}`);
   }
-  text = text.replace(/\r\n/g, "\n").trim();
+  // Postgres rejects NUL; strip it and other non-printing control characters some PDFs emit.
+  text = text.replace(/\r\n/g, "\n").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim();
   if (text.length < 200) {
     throw new ParseError("Too little text could be extracted. The file may be a scanned image; upload a text-based PDF or DOCX.");
   }

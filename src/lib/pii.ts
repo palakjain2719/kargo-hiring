@@ -113,7 +113,8 @@ export function extractPii(rawText: string, fileName?: string): PiiResult {
   });
   const phone = phoneCandidates[0]?.trim() ?? null;
   const fileNameGuess = fileName ? nameFromFileName(fileName) : null;
-  const name = detectName(text) ?? fileNameGuess;
+  // A name in the filename is deliberate; a header guess can pick up a job title or place, so the filename wins.
+  const name = fileNameGuess ?? detectName(text);
 
   let anon = text;
   anon = anon.replace(EMAIL_RE, () => (bump("email"), "[EMAIL REDACTED]"));
@@ -126,12 +127,6 @@ export function extractPii(rawText: string, fileName?: string): PiiResult {
   anon = anon.replace(NAME_LABEL_RE, () => "Name: [CANDIDATE]");
   if (name) {
     const r = redactName(anon, name);
-    anon = r.text;
-    if (r.count) bump("name", r.count);
-  }
-  // If the header name and filename disagree, redact the filename's name too.
-  if (fileNameGuess && fileNameGuess !== name) {
-    const r = redactName(anon, fileNameGuess);
     anon = r.text;
     if (r.count) bump("name", r.count);
   }

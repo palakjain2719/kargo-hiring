@@ -28,7 +28,7 @@ const { seedRubric } = await import("../src/lib/rubric/seed");
 const { extractText } = await import("../src/lib/parse-file");
 const { ingestCv, processQueue, buildAssessment, buildEmailDraft } = await import("../src/lib/pipeline");
 const { loadAll } = await import("../src/lib/views");
-const { sendApprovedDraft } = await import("../src/lib/email/send");
+const { sendDraft } = await import("../src/lib/email/send");
 const { isMockAi } = await import("../src/lib/ai/providers");
 
 let failures = 0;
@@ -135,9 +135,9 @@ check("rejection draft is personalised with real name", rej.body.includes("Rohan
 check("rejection draft mentions applied role", /Senior Product Manager/.test(rej.body + rej.subject));
 check("rejection draft exposes no scores", !/\d+\s*(%|\/\s*(5|100))|score|rubric/i.test(rej.body));
 
-// Sending an unapproved draft must be refused.
-const unapproved = await sendApprovedDraft(offer);
-check("unapproved draft cannot be sent", !unapproved.ok);
+// With sending switched off, clicking Send is a dry run: nothing is delivered.
+const dry = await sendDraft(offer);
+check("send with sending off is a dry run", dry.ok && dry.dryRun);
 
 const drafts = await repo.listEmailDrafts();
 const audit = await repo.listAudit();

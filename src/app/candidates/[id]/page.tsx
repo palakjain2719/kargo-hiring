@@ -106,7 +106,7 @@ export default async function CandidatePage({ params, searchParams }: { params: 
           <div className="min-w-[240px] flex-1">
             <h1 className="text-xl font-semibold tracking-tight">{row.name}</h1>
             <div className="mt-0.5 text-[13px] text-ink-2">
-              Applied for <b>{ROLE_LABEL[c.applied_role]}</b> · {c.original_file_name}
+              {c.role_source === "best_fit" ? <>Placed in <b>{ROLE_LABEL[c.applied_role]}</b> by best fit (no role stated; scored higher on this rubric)</> : <>Applied for <b>{ROLE_LABEL[c.applied_role]}</b></>} · {c.original_file_name}
             </div>
             <div className="mt-1 text-xs text-ink-3">
               Private: {c.private_email ?? "no email found"} · {c.private_phone ?? "no phone found"}
@@ -274,7 +274,7 @@ export default async function CandidatePage({ params, searchParams }: { params: 
 
       <Section n={6} title="Email draft">
         {draft ? (
-          <EmailEditor draft={draft} />
+          <EmailEditor draft={draft} to={c.private_email} />
         ) : c.workflow_status === "selected" || c.workflow_status === "rejected" ? (
           <div className="flex items-center gap-3 text-[13px] text-ink-2">
             No {c.workflow_status === "selected" ? "offer" : "rejection"} draft yet.

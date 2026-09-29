@@ -121,6 +121,7 @@ export function createSupabaseRepo(url: string, serviceKey: string): Repo {
       return {
         shortlist_size: { ...DEFAULT_SETTINGS.shortlist_size, ...((map.shortlist_size as object) ?? {}) },
         min_recommend_score: Number(map.min_recommend_score ?? DEFAULT_SETTINGS.min_recommend_score),
+        finalist_count: Number(map.finalist_count ?? DEFAULT_SETTINGS.finalist_count),
       };
     },
     async saveSettings(s) {
@@ -128,6 +129,7 @@ export function createSupabaseRepo(url: string, serviceKey: string): Repo {
         await db.from("settings").upsert([
           { key: "shortlist_size", value: s.shortlist_size },
           { key: "min_recommend_score", value: s.min_recommend_score },
+          { key: "finalist_count", value: s.finalist_count },
         ]),
         "saveSettings",
       );

@@ -14,6 +14,7 @@ export type NewCandidate = Pick<
   Candidate,
   | "batch_id"
   | "applied_role"
+  | "role_source"
   | "original_file_name"
   | "private_name"
   | "private_email"

@@ -9,11 +9,12 @@ import { ActionButton, call, EmailEditor } from "./actions";
 type Item = EmailDraft & { name: string; role: string; to: string | null };
 
 const TONE: Record<string, string> = {
-  draft: "bg-canvas text-ink-2 border-line",
-  approved: "bg-accent-soft text-accent border-accent/20",
+  ready: "bg-accent-soft text-accent border-accent/20",
   sent: "bg-good-soft text-good border-good/20",
   failed: "bg-bad-soft text-bad border-bad/20",
+  "no email": "bg-canvas text-ink-3 border-line",
 };
+const stateOf = (d: Item) => (d.status === "sent" ? "sent" : !d.to ? "no email" : d.status === "failed" ? "failed" : "ready");
 
 export function EmailQueue({
   tab, items, rejectedWithoutDraft, selectedWithoutDraft, live, testRecipient,
@@ -24,44 +25,33 @@ export function EmailQueue({
   const router = useRouter();
   const list = items.filter((i) => i.email_type === tab);
   const [open, setOpen] = useState<string | null>(null);
-  const [picked, setPicked] = useState<string[]>([]);
   const [confirming, setConfirming] = useState(false);
-  const [typed, setTyped] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const approved = list.filter((i) => i.status === "approved");
-  const drafts = list.filter((i) => i.status === "draft" || i.status === "failed");
-  const toSend = approved.filter((i) => picked.includes(i.id));
-  const count = (s: string) => list.filter((i) => i.status === s).length;
+  const ready = list.filter((i) => stateOf(i) === "ready" || stateOf(i) === "failed");
+  const count = (s: string) => list.filter((i) => stateOf(i) === s).length;
 
-  async function send() {
-    setBusy(true);
+  async function send(ids: string[]) {
+    setBusy(ids.length === 1 ? ids[0] : "all");
     setMsg(null);
     try {
-      const r = await call("/api/emails/send", "POST", { ids: toSend.map((i) => i.id), confirmation: "CONFIRM_SEND" });
+      const r = await call("/api/emails/send", "POST", { ids, confirmation: "CONFIRM_SEND" });
       const ok = r.results.filter((x: { ok: boolean }) => x.ok).length;
       const bad = r.results.filter((x: { ok: boolean }) => !x.ok);
       setMsg({
         ok: bad.length === 0,
         text: r.sending_enabled
-          ? `${ok} sent${bad.length ? `, ${bad.length} failed: ${bad.map((b: { error: string }) => b.error).join("; ")}` : "."}`
-          : `Dry run: ${ok} email(s) validated, none sent (EMAIL_SENDING_ENABLED is off).${bad.length ? ` ${bad.length} failed validation.` : ""}`,
+          ? `${ok} email${ok === 1 ? "" : "s"} sent${bad.length ? `. ${bad.length} failed: ${bad.map((b: { error: string }) => b.error).join("; ")}` : "."}`
+          : `Dry run: sending is switched off, so nothing was delivered (${ok} email${ok === 1 ? "" : "s"} checked).`,
       });
-      setPicked([]); setConfirming(false); setTyped("");
+      setConfirming(false);
       router.refresh();
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
-  }
-
-  async function approveAll() {
-    const r = await call("/api/emails/approve", "POST", { ids: drafts.map((d) => d.id) });
-    const bad = r.results.filter((x: { ok: boolean }) => !x.ok);
-    setMsg({ ok: !bad.length, text: `${r.results.length - bad.length} approved.${bad.length ? ` ${bad.length} need edits: ${bad.map((b: { error: string }) => b.error).join("; ")}` : ""}` });
-    router.refresh();
   }
 
   return (
@@ -73,59 +63,67 @@ export function EmailQueue({
           </Link>
         ))}
         <span className="ml-auto text-xs text-ink-3">
-          {count("draft")} draft · {count("approved")} approved · {count("sent")} sent · {count("failed")} failed
+          {count("ready")} ready · {count("sent")} sent · {count("failed")} failed · {count("no email")} no email on file
         </span>
       </div>
 
+      {!live && (
+        <div className="rounded-md border border-warn/20 bg-warn-soft px-3 py-2 text-[13px] text-warn">
+          Email sending is switched off. Send buttons run a dry run until Resend is connected and EMAIL_SENDING_ENABLED=true.
+        </div>
+      )}
+      {live && testRecipient && (
+        <div className="rounded-md border border-warn/20 bg-warn-soft px-3 py-2 text-[13px] text-warn">
+          Test mode: every email goes to EMAIL_TEST_RECIPIENT, not to candidates.
+        </div>
+      )}
+
       {tab === "rejection" && rejectedWithoutDraft > 0 && (
         <div className="card flex flex-wrap items-center gap-3 px-4 py-3">
-          <span className="text-[13px]">{rejectedWithoutDraft} rejected candidate(s) have no rejection draft yet.</span>
-          <ActionButton url="/api/rejections/drafts" label={`Prepare ${rejectedWithoutDraft} individual draft(s)`} busyLabel="Drafting individually…" className="btn btn-primary btn-sm ml-auto" />
+          <span className="text-[13px]">{rejectedWithoutDraft} rejected candidate(s) don't have their email written yet.</span>
+          <ActionButton url="/api/rejections/drafts" label={`Write ${rejectedWithoutDraft} email(s)`} busyLabel="Writing individually…" className="btn btn-primary btn-sm ml-auto" />
         </div>
       )}
       {tab === "offer" && selectedWithoutDraft.length > 0 && (
         <div className="card px-4 py-3 text-[13px]">
-          Offer drafts missing for: {selectedWithoutDraft.map((s) => <Link key={s.id} href={`/candidates/${s.id}`} className="mr-2 text-accent hover:underline">{s.name}</Link>)}
+          Offer email missing for: {selectedWithoutDraft.map((s) => <Link key={s.id} href={`/candidates/${s.id}`} className="mr-2 text-accent hover:underline">{s.name}</Link>)}
         </div>
       )}
 
       {msg && <div className={`rounded-md px-3 py-2 text-[13px] ${msg.ok ? "bg-good-soft text-good" : "bg-bad-soft text-bad"}`}>{msg.text}</div>}
 
       <div className="card divide-y divide-line-2">
-        {list.map((d) => (
-          <div key={d.id}>
-            <div className="flex flex-wrap items-center gap-3 px-4 py-2.5">
-              <input
-                type="checkbox"
-                className="h-4 w-4"
-                disabled={d.status !== "approved"}
-                checked={picked.includes(d.id)}
-                onChange={() => setPicked((p) => (p.includes(d.id) ? p.filter((x) => x !== d.id) : [...p, d.id]))}
-                title={d.status === "approved" ? "Include in send" : "Approve first"}
-                aria-label={`Include ${d.name}`}
-              />
-              <div className="min-w-[180px] flex-1">
-                <Link href={`/candidates/${d.candidate_id}`} className="font-medium hover:underline">{d.name}</Link>
-                <span className="ml-2 text-xs text-ink-3">{d.role} · {d.to ?? "no email on record"}</span>
-                <div className="truncate text-xs text-ink-2">{d.subject}</div>
+        {list.map((d) => {
+          const st = stateOf(d);
+          return (
+            <div key={d.id}>
+              <div className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+                <div className="min-w-[180px] flex-1">
+                  <Link href={`/candidates/${d.candidate_id}`} className="font-medium hover:underline">{d.name}</Link>
+                  <span className="ml-2 text-xs text-ink-3">{d.role} · {d.to ?? "no email address on file"}</span>
+                  <div className="truncate text-xs text-ink-2">{d.subject}</div>
+                </div>
+                <span className={`rounded border px-1.5 py-0.5 text-[11px] font-medium capitalize ${TONE[st]}`}>{st}</span>
+                {d.sent_at && <span className="text-[11px] tabular-nums text-ink-3">{new Date(d.sent_at).toLocaleString()}</span>}
+                <button className="btn btn-sm" onClick={() => setOpen(open === d.id ? null : d.id)}>{open === d.id ? "Close" : "Read"}</button>
+                {(st === "ready" || st === "failed") && (
+                  <button className="btn btn-primary btn-sm" disabled={!!busy} onClick={() => send([d.id])}>
+                    {busy === d.id ? "Sending…" : st === "failed" ? "Retry send" : "Send"}
+                  </button>
+                )}
               </div>
-              {d.edited_by_founder && <span className="text-[11px] text-ink-3">edited</span>}
-              <span className={`rounded border px-1.5 py-0.5 text-[11px] font-medium capitalize ${TONE[d.status]}`}>{d.status}</span>
-              {d.sent_at && <span className="text-[11px] tabular-nums text-ink-3">{new Date(d.sent_at).toLocaleString()}</span>}
-              <button className="btn btn-sm" onClick={() => setOpen(open === d.id ? null : d.id)}>{open === d.id ? "Close" : d.status === "sent" ? "View" : "Review & edit"}</button>
+              {open === d.id && <div className="border-t border-line-2 bg-canvas/50 px-4 py-3"><EmailEditor draft={d} to={d.to} /></div>}
             </div>
-            {open === d.id && <div className="border-t border-line-2 bg-canvas/50 px-4 py-3"><EmailEditor draft={d} /></div>}
-          </div>
-        ))}
-        {!list.length && <div className="px-4 py-8 text-center text-[13px] text-ink-3">No {tab} drafts.</div>}
+          );
+        })}
+        {!list.length && <div className="px-4 py-8 text-center text-[13px] text-ink-3">No {tab} emails.</div>}
       </div>
 
-      {list.length > 0 && (
+      {ready.length > 1 && (
         <div className="card sticky bottom-4 flex flex-wrap items-center gap-3 px-4 py-3 shadow-sm">
-          {drafts.length > 0 && <button className="btn" onClick={approveAll}>Approve all {drafts.length} unapproved (after review)</button>}
-          <button className="btn" disabled={!approved.length} onClick={() => setPicked(approved.map((a) => a.id))}>Select all approved ({approved.length})</button>
-          <button className="btn btn-primary ml-auto" disabled={!toSend.length} onClick={() => setConfirming(true)}>
-            Send {toSend.length || ""} approved email{toSend.length === 1 ? "" : "s"}…
+          <span className="text-[13px]">{ready.length} {tab} emails ready</span>
+          <button className="btn btn-primary ml-auto" disabled={!!busy} onClick={() => setConfirming(true)}>
+            Send all {ready.length}
           </button>
         </div>
       )}
@@ -133,26 +131,16 @@ export function EmailQueue({
       {confirming && (
         <div className="fixed inset-0 z-10 flex items-center justify-center bg-ink/30 p-4" role="dialog" aria-modal>
           <div className="card w-full max-w-lg p-5 shadow-lg">
-            <h2 className="text-[15px] font-semibold">Send {toSend.length} {tab} email{toSend.length === 1 ? "" : "s"}?</h2>
-            <p className="mt-1 text-[13px] text-ink-2">
-              {live
-                ? testRecipient
-                  ? "Sending is LIVE but redirected to EMAIL_TEST_RECIPIENT, not to candidates."
-                  : "Sending is LIVE. These go to the candidates' real addresses and can't be recalled."
-                : "Sending is OFF (dry run). Drafts are validated but nothing is delivered."}
-            </p>
+            <h2 className="text-[15px] font-semibold">Send {ready.length} {tab} emails?</h2>
+            <p className="mt-1 text-[13px] text-ink-2">Each person gets their own email. Sent emails can't be recalled.</p>
             <ul className="my-3 max-h-56 divide-y divide-line-2 overflow-y-auto rounded-md border border-line">
-              {toSend.map((d) => (
+              {ready.map((d) => (
                 <li key={d.id} className="px-3 py-1.5 text-[13px]"><b>{d.name}</b> <span className="text-ink-3">· {d.to}</span></li>
               ))}
             </ul>
-            <label className="block text-[13px]">
-              Type <b>SEND</b> to confirm
-              <input className="input mt-1 w-full" value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus />
-            </label>
-            <div className="mt-4 flex justify-end gap-2">
-              <button className="btn" onClick={() => { setConfirming(false); setTyped(""); }}>Cancel</button>
-              <button className="btn btn-primary" disabled={typed !== "SEND" || busy} onClick={send}>{busy ? "Sending…" : "Confirm send"}</button>
+            <div className="flex justify-end gap-2">
+              <button className="btn" onClick={() => setConfirming(false)}>Cancel</button>
+              <button className="btn btn-primary" disabled={!!busy} onClick={() => send(ready.map((r) => r.id))}>{busy ? "Sending…" : `Send ${ready.length}`}</button>
             </div>
           </div>
         </div>

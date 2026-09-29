@@ -19,10 +19,10 @@ export interface SendResult {
 }
 
 /**
- * Sends ONE approved draft. Only called from the founder-confirmed /api/emails/send route.
+ * Sends ONE draft. Only called from /api/emails/send, i.e. when the founder clicks Send.
  * With sending disabled it validates everything and records a dry run, but never sends.
  */
-export async function sendApprovedDraft(draft: EmailDraft): Promise<SendResult> {
+export async function sendDraft(draft: EmailDraft): Promise<SendResult> {
   const repo = getRepo();
   const c = await repo.getCandidate(draft.candidate_id);
   const fail = async (error: string, markFailed = true): Promise<SendResult> => {
@@ -31,11 +31,11 @@ export async function sendApprovedDraft(draft: EmailDraft): Promise<SendResult> 
     return { draftId: draft.id, ok: false, dryRun: false, error };
   };
 
-  if (draft.status !== "approved") return fail("Draft is not approved", false);
+  if (draft.status === "sent") return fail("Already sent", false);
   if (!c) return fail("Candidate not found");
   const expected = draft.email_type === "offer" ? "selected" : "rejected";
   if (c.workflow_status !== expected) return fail(`Candidate is no longer ${expected}`, false);
-  if (!c.private_email) return fail("No email address on the private candidate record");
+  if (!c.private_email) return fail("No email address on file for this candidate", false);
   const left = unresolvedPlaceholders(`${draft.subject}\n${draft.body}`);
   if (left.length) return fail(`Unfilled placeholders: ${left.join(", ")}`, false);
 

@@ -8,12 +8,14 @@ import { ROLES } from "./types";
 export const piiOf = (c: Candidate): PrivateIds => ({ name: c.private_name, email: c.private_email, phone: c.private_phone });
 
 /** Ingestion: separate PII locally, store it apart from the anonymised content, queue for AI. */
-export async function ingestCv(opts: { batchId: string; role: Role; fileName: string; text: string }) {
+/** role "AUTO": no role given; the pipeline assigns the better-fitting role after scoring. */
+export async function ingestCv(opts: { batchId: string; role: Role | "AUTO"; fileName: string; text: string }) {
   const pii = extractPii(opts.text, opts.fileName);
   const repo = getRepo();
   const c = await repo.createCandidate({
     batch_id: opts.batchId,
-    applied_role: opts.role,
+    applied_role: opts.role === "AUTO" ? "PM" : opts.role, // provisional until scored
+    role_source: opts.role === "AUTO" ? "best_fit" : "applicant",
     original_file_name: opts.fileName,
     private_name: pii.name,
     private_email: pii.email,
@@ -34,11 +36,12 @@ export async function ingestCv(opts: { batchId: string; role: Role; fileName: st
 }
 
 /** Records an upload that could not be parsed, so it shows as failed and can be replaced. */
-export async function recordFailedUpload(opts: { batchId: string; role: Role; fileName: string; error: string }) {
+export async function recordFailedUpload(opts: { batchId: string; role: Role | "AUTO"; fileName: string; error: string }) {
   const repo = getRepo();
   const c = await repo.createCandidate({
     batch_id: opts.batchId,
-    applied_role: opts.role,
+    applied_role: opts.role === "AUTO" ? "PM" : opts.role,
+    role_source: opts.role === "AUTO" ? "best_fit" : "applicant",
     original_file_name: opts.fileName,
     private_name: null,
     private_email: null,
@@ -89,12 +92,29 @@ export async function analyseCandidate(c: Candidate): Promise<void> {
         model: s.model,
       });
     }
+    // No role given: place the candidate where the rubric says they fit best.
+    // SPM wins ties, since matching the senior rubric equally well is the stronger signal.
+    let bestFit: Role | null = null;
+    if (c.role_source === "best_fit") {
+      const pm = scored.find((s) => s.role === "PM")!.overall;
+      const spm = scored.find((s) => s.role === "SPM")!.overall;
+      bestFit = spm >= pm ? "SPM" : "PM";
+    }
     await repo.updateCandidate(c.id, {
       profile: profile.data,
       processing_status: "completed",
       processing_error: null,
       workflow_status: c.workflow_status === "processing" ? "analysed" : c.workflow_status,
+      ...(bestFit ? { applied_role: bestFit } : {}),
     });
+    if (bestFit) {
+      await repo.addAudit({
+        candidate_id: c.id,
+        action: "role_assigned_best_fit",
+        actor: "system",
+        details: { role: bestFit, ...Object.fromEntries(scored.map((s) => [`${s.role}_score`, s.overall])) },
+      });
+    }
     await repo.addAudit({
       candidate_id: c.id,
       action: "analysis_completed",
@@ -173,4 +193,50 @@ export async function buildEmailDraft(candidateId: string, type: EmailType) {
   });
   await repo.addAudit({ candidate_id: c.id, action: `${type}_draft_generated`, actor: "system", details: { draft_id: draft.id } });
   return draft;
+}
+
+/**
+ * Keeps the top N per role (N = settings.finalist_count) in "finalist", by applied-role score,
+ * among candidates at or above the minimum score. Only touches candidates the founder hasn't
+ * decided on manually: auto-finalists that drop out of the top N return to "analysed".
+ * New finalists get an interview brief. Runs whenever the processing queue is empty.
+ */
+export async function autoAssignFinalists() {
+  const repo = getRepo();
+  const [candidates, scores, settings] = await Promise.all([repo.listCandidates(), repo.listScores(), repo.getSettings()]);
+  if (candidates.some((c) => c.processing_status === "queued" || c.processing_status === "processing")) {
+    return { skipped: "processing still running" };
+  }
+  const scoreOf = (c: Candidate) => scores.find((s) => s.candidate_id === c.id && s.role === c.applied_role)?.overall_score ?? null;
+  const promoted: string[] = [];
+  const demoted: string[] = [];
+  for (const role of ROLES) {
+    const pool = candidates
+      .filter((c) => c.applied_role === role && c.processing_status === "completed")
+      .filter((c) => ["analysed", "shortlisted", "finalist"].includes(c.workflow_status))
+      .filter((c) => (scoreOf(c) ?? -1) >= settings.min_recommend_score)
+      .sort((a, b) => scoreOf(b)! - scoreOf(a)!);
+    const top = new Set(pool.slice(0, settings.finalist_count).map((c) => c.id));
+    for (const c of candidates.filter((x) => x.applied_role === role && !x.decided_by_founder)) {
+      if (top.has(c.id) && c.workflow_status !== "finalist") {
+        await repo.updateCandidate(c.id, { workflow_status: "finalist" });
+        await repo.addAudit({ candidate_id: c.id, action: "auto_finalist", actor: "system", details: { role, score: scoreOf(c) } });
+        promoted.push(c.id);
+      } else if (!top.has(c.id) && c.workflow_status === "finalist") {
+        await repo.updateCandidate(c.id, { workflow_status: "analysed" });
+        await repo.addAudit({ candidate_id: c.id, action: "auto_finalist_removed", actor: "system", details: { role, score: scoreOf(c) } });
+        demoted.push(c.id);
+      }
+    }
+  }
+  const assessments = await repo.listAssessments();
+  const finalists = (await repo.listCandidates()).filter((c) => c.workflow_status === "finalist" && !assessments.some((a) => a.candidate_id === c.id));
+  for (const c of finalists) {
+    try {
+      await buildAssessment(c.id);
+    } catch (e) {
+      console.error(`[finalists] brief failed for ${c.id}: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+  return { promoted: promoted.length, demoted: demoted.length };
 }

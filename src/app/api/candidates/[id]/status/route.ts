@@ -1,6 +1,6 @@
 import { getRepo } from "@/lib/db";
 import { fail, handle, ok } from "@/lib/http";
-import { buildAssessment } from "@/lib/pipeline";
+import { buildAssessment, buildEmailDraft } from "@/lib/pipeline";
 import type { WorkflowStatus } from "@/lib/types";
 import { canTransition } from "@/lib/workflow";
 
@@ -25,7 +25,7 @@ export const POST = handle(async (req: Request, ctx: { params: Promise<{ id: str
     if (d) await repo.deleteEmailDraft(d.id);
   }
 
-  await repo.updateCandidate(id, { workflow_status: to });
+  await repo.updateCandidate(id, { workflow_status: to, decided_by_founder: true });
   await repo.addAudit({ candidate_id: id, action: "status_changed", actor: "founder", details: { from: c.workflow_status, to } });
 
   // Shortlisting generates the interview brief (if missing). Failure here doesn't undo the move.
@@ -35,6 +35,14 @@ export const POST = handle(async (req: Request, ctx: { params: Promise<{ id: str
       await buildAssessment(id);
     } catch (e) {
       briefError = e instanceof Error ? e.message : String(e);
+    }
+  }
+  // Rejection: prepare the individual rejection email straight away so it is ready to send.
+  if (to === "rejected") {
+    try {
+      await buildEmailDraft(id, "rejection");
+    } catch (e) {
+      briefError = `Rejection email could not be drafted: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
   return ok({ status: to, brief_error: briefError });

@@ -20,7 +20,7 @@ export const POST = handle(async (req: Request) => {
 
   const results = [];
   for (const c of candidates) {
-    await repo.updateCandidate(c!.id, { workflow_status: "selected" });
+    await repo.updateCandidate(c!.id, { workflow_status: "selected", decided_by_founder: true });
     await repo.addAudit({ candidate_id: c!.id, action: "selected_for_offer", actor: "founder", details: { batch_size: ids.length } });
     try {
       const d = await buildEmailDraft(c!.id, "offer");

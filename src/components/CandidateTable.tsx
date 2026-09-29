@@ -84,7 +84,7 @@ export function CandidateTable({ rows }: { rows: CandidateRow[] }) {
                   <div className="font-medium">{r.name}</div>
                   <div className="text-xs text-ink-3">{r.file}</div>
                 </td>
-                <td className="td">{r.applied_role}</td>
+                <td className="td">{r.applied_role}{r.role_source === "best_fit" && <div className="text-[11px] text-ink-3">best fit</div>}</td>
                 <td className="td text-right"><Score value={r.pm} /></td>
                 <td className="td text-right"><Score value={r.spm} /></td>
                 <td className="td text-right">

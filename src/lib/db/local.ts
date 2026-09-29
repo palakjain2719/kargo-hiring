@@ -80,7 +80,7 @@ export function createLocalRepo(): Repo {
 
     createCandidate: (c) =>
       tx((s) => {
-        const row: Candidate = { ...c, id: randomUUID(), profile: null, processing_attempts: 0, created_at: now(), updated_at: now() };
+        const row: Candidate = { ...c, id: randomUUID(), decided_by_founder: false, profile: null, processing_attempts: 0, created_at: now(), updated_at: now() };
         s.candidates.push(row);
         return row;
       }),
@@ -175,7 +175,7 @@ export function createLocalRepo(): Repo {
     listAudit: (cid) =>
       read((s) => s.audit_log.filter((x) => !cid || x.candidate_id === cid).sort((a, b) => b.created_at.localeCompare(a.created_at))),
 
-    getSettings: () => read((s) => s.settings),
+    getSettings: () => read((s) => ({ ...DEFAULT_SETTINGS, ...s.settings })),
     saveSettings: (settings) =>
       tx((s) => {
         s.settings = settings;

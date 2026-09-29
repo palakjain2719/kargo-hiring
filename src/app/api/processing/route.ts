@@ -23,7 +23,7 @@ export const GET = handle(async (req: Request) => {
         id: c.id,
         file: c.original_file_name,
         name: candidateName(c),
-        role: c.applied_role,
+        role: c.role_source === "best_fit" && c.processing_status !== "completed" ? "Best fit" : c.applied_role,
         status: c.processing_status,
         error: c.processing_error,
         can_retry: c.processing_status === "failed" && !!c.anonymised_cv_content,

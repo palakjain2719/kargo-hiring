@@ -38,6 +38,10 @@ export interface Candidate {
   id: string;
   batch_id: string;
   applied_role: Role;
+  /** "best_fit": the applicant gave no role; applied_role is set from whichever rubric they score higher on. */
+  role_source: "applicant" | "best_fit";
+  /** Set once the founder makes any manual status decision; automatic finalisting never overrides it. */
+  decided_by_founder: boolean;
   original_file_name: string;
   private_name: string | null;
   private_email: string | null;
@@ -132,9 +136,12 @@ export interface Settings {
   shortlist_size: Record<Role, number>;
   /** Candidates below this applied-role score are never recommended, even if they rank in the top N. */
   min_recommend_score: number;
+  /** Top N per role (by applied-role score) are moved to finalist automatically. */
+  finalist_count: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   shortlist_size: { PM: 5, SPM: 5 },
   min_recommend_score: 50,
+  finalist_count: 3,
 };

@@ -22,12 +22,12 @@ export const POST = handle(async (req: Request) => {
   const roles = form.getAll("roles").map(String);
   if (!files.length) return fail("No files provided");
   if (roles.length !== files.length) return fail("Each file needs an applied role");
-  if (!roles.every((r) => (ROLES as readonly string[]).includes(r))) return fail("Role must be PM or SPM");
+  if (!roles.every((r) => r === "AUTO" || (ROLES as readonly string[]).includes(r))) return fail("Role must be PM, SPM or AUTO");
 
   const results = [];
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
-    const role = roles[i] as Role;
+    const role = roles[i] as Role | "AUTO";
     try {
       const text = await extractText(f.name, new Uint8Array(await f.arrayBuffer()));
       const c = await ingestCv({ batchId, role, fileName: f.name, text });

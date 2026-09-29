@@ -130,6 +130,8 @@ export function draftEmail(
     () => mock.mockEmail(type, role, strengths, gaps),
     (v) => {
       if (!v.body.includes("{{candidate_name}}")) return "body must address {{candidate_name}}";
+      // Emails must be sendable without edits: no leftover placeholders like [Start date] or ___.
+      if (/\[[^\]]{2,40}\]|_{3,}|\{\{(?!candidate_name\}\})/.test(`${v.subject}\n${v.body}`)) return "email contains a placeholder";
       if (type === "rejection" && SCORE_LEAK.test(`${v.subject}\n${v.body}`)) {
         return "rejection email exposes scoring details";
       }

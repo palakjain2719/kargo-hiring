@@ -100,8 +100,9 @@ export function emailPrompt(
     system: [
       ...common,
       `This is an offer for the ${ROLE_LABEL[role]} role. Express genuine enthusiasm, referencing one strength from the notes.`,
-      "Do NOT state compensation, start date, or terms. Insert these exact bracketed placeholders for Arjun to fill: [Compensation], [Start date], [Response deadline].",
-      "Mention that a formal offer letter will follow. Keep it to 120–180 words.",
+      "The email must be complete and ready to send as-is: no placeholders, brackets or blanks of any kind.",
+      "Do NOT state compensation, start date or other terms. Say the formal offer letter with compensation, start date and joining details will follow shortly, and ask them to reply to this email to confirm their interest so a call can be set up.",
+      "Keep it to 120–180 words.",
     ].join("\n"),
     user: `Role: ${ROLE_LABEL[role]}\nStrengths seen in the CV:\n${strengths.map((s) => `- ${s}`).join("\n")}`,
   };

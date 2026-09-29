@@ -4,16 +4,17 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Role = "PM" | "SPM";
-interface Pending { file: File; role: Role | "" }
+type Choice = Role | "AUTO";
+interface Pending { file: File; role: Choice | "" }
 interface Item {
-  id: string; file: string; name: string; role: Role;
+  id: string; file: string; name: string; role: Role | "Best fit";
   status: "queued" | "processing" | "completed" | "failed";
   error: string | null; can_retry: boolean; needs_file: boolean;
 }
 interface Progress { total: number; queued: number; processing: number; completed: number; failed: number; items: Item[] }
 
-// Pre-fills the role only when the filename says so ("pm_…", "spm_…"). Arjun can change it before uploading.
-const roleFromName = (n: string): Role | "" => (/^spm[_\-\s]/i.test(n) ? "SPM" : /^pm[_\-\s]/i.test(n) ? "PM" : "");
+// Role from the filename ("pm_…", "spm_…"); anything else defaults to best fit (assigned after scoring against both rubrics).
+const roleFromName = (n: string): Choice => (/^spm[_\-\s]/i.test(n) ? "SPM" : /^pm[_\-\s]/i.test(n) ? "PM" : "AUTO");
 const CHUNK = 5; // files per upload request (keeps each request under serverless body limits)
 const WORKERS = 2; // parallel /api/process loops; each claims up to 3 CVs
 
@@ -108,7 +109,7 @@ export function Uploader() {
     if (!running) runWorkers();
   }
 
-  const setAll = (role: Role) => setPending((p) => p.map((x) => ({ ...x, role })));
+  const setAll = (role: Choice) => setPending((p) => p.map((x) => ({ ...x, role })));
   const unassigned = pending.filter((p) => !p.role).length;
 
   return (
@@ -134,6 +135,7 @@ export function Uploader() {
               <span className="ml-auto text-xs text-ink-3">Set all to</span>
               <button className="btn btn-sm" onClick={() => setAll("PM")}>PM</button>
               <button className="btn btn-sm" onClick={() => setAll("SPM")}>SPM</button>
+              <button className="btn btn-sm" onClick={() => setAll("AUTO")}>Best fit</button>
             </div>
             <div className="mt-2 max-h-[420px] overflow-y-auto rounded-md border border-line">
               {pending.map((p, i) => (
@@ -142,12 +144,13 @@ export function Uploader() {
                   <select
                     className={`input py-1 ${p.role ? "" : "border-warn/50"}`}
                     value={p.role}
-                    onChange={(e) => setPending((all) => all.map((x, j) => (j === i ? { ...x, role: e.target.value as Role } : x)))}
+                    onChange={(e) => setPending((all) => all.map((x, j) => (j === i ? { ...x, role: e.target.value as Choice } : x)))}
                     aria-label={`Applied role for ${p.file.name}`}
                   >
                     <option value="">Applied role…</option>
                     <option value="PM">PM</option>
                     <option value="SPM">SPM</option>
+                    <option value="AUTO">Best fit</option>
                   </select>
                   <button className="text-xs text-ink-3 hover:text-bad" onClick={() => setPending((all) => all.filter((_, j) => j !== i))} aria-label="Remove">✕</button>
                 </div>

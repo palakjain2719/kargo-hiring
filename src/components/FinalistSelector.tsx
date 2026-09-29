@@ -6,15 +6,16 @@ import { useState } from "react";
 import { call } from "./actions";
 import { Score, StatusBadge } from "./ui";
 
-interface F { id: string; name: string; role: "PM" | "SPM"; score: number | null; strength: string | null; concern: string | null; probe: string | null }
+interface F { id: string; name: string; role: "PM" | "SPM"; score: number | null; strength: string | null; concern: string | null; probe: string | null; rank: number | null; auto: boolean }
 
-export function FinalistSelector({ finalists, alreadySelected }: { finalists: F[]; alreadySelected: { id: string; name: string; role: string; status: string }[] }) {
+export function FinalistSelector({ finalists, alreadySelected, finalistCount }: { finalistCount: number; finalists: F[]; alreadySelected: { id: string; name: string; role: string; status: string }[] }) {
   const router = useRouter();
   const [picked, setPicked] = useState<string[]>([]);
   const [reviewing, setReviewing] = useState(false);
   const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [count, setCount] = useState(finalistCount);
   const chosen = finalists.filter((f) => picked.includes(f.id));
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
@@ -24,7 +25,7 @@ export function FinalistSelector({ finalists, alreadySelected }: { finalists: F[
     try {
       const r = await call("/api/selections/confirm", "POST", { ids: picked, confirm: true });
       const failed = r.results.filter((x: { ok: boolean }) => !x.ok).length;
-      setMsg({ ok: !failed, text: `${r.selected} candidate(s) selected. Offer drafts prepared${failed ? `, ${failed} failed (retry from the candidate page)` : ""}. Review them in Communications.` });
+      setMsg({ ok: !failed, text: `${r.selected} candidate(s) selected. Offer emails are written and ready to send${failed ? ` (${failed} failed; retry from the candidate page)` : ""}.` });
       setPicked([]); setReviewing(false); setAck(false);
       router.refresh();
     } catch (e) {
@@ -36,6 +37,13 @@ export function FinalistSelector({ finalists, alreadySelected }: { finalists: F[
 
   return (
     <div className="space-y-5">
+      <div className="flex items-end gap-2">
+        <label className="flex flex-col gap-0.5">
+          <span className="label">Finalists per role</span>
+          <input type="number" min={1} max={20} className="input w-20" value={count} onChange={(e) => setCount(Number(e.target.value))} />
+        </label>
+        <button className="btn" disabled={count === finalistCount || busy} onClick={async () => { setBusy(true); try { await call("/api/settings", "PUT", { finalist_count: count }); router.refresh(); } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : String(e) }); } finally { setBusy(false); } }}>Update</button>
+      </div>
       {msg && (
         <div className={`rounded-md px-3 py-2 text-[13px] ${msg.ok ? "bg-good-soft text-good" : "bg-bad-soft text-bad"}`}>
           {msg.text} {msg.ok && <Link href="/communications" className="underline">Go to Communications →</Link>}
@@ -49,6 +57,7 @@ export function FinalistSelector({ finalists, alreadySelected }: { finalists: F[
               <th className="th w-10" />
               <th className="th">Finalist</th>
               <th className="th">Role</th>
+              <th className="th">How</th>
               <th className="th text-right">Score</th>
               <th className="th">Strongest criterion</th>
               <th className="th">Main concern</th>
@@ -61,6 +70,7 @@ export function FinalistSelector({ finalists, alreadySelected }: { finalists: F[
                 <td className="td"><input type="checkbox" className="h-4 w-4 accent-[var(--color-accent)]" checked={picked.includes(f.id)} onChange={() => toggle(f.id)} aria-label={`Select ${f.name}`} /></td>
                 <td className="td font-medium"><Link href={`/candidates/${f.id}`} className="hover:underline">{f.name}</Link></td>
                 <td className="td">{f.role}</td>
+                <td className="td text-xs text-ink-2">{f.auto ? `Top ${finalistCount} (#${f.rank})` : "Added by you"}</td>
                 <td className="td text-right"><Score value={f.score} /></td>
                 <td className="td text-[13px] text-ink-2">{f.strength ?? "—"}</td>
                 <td className="td text-[13px] text-ink-2">{f.concern ?? "—"}</td>
@@ -68,7 +78,7 @@ export function FinalistSelector({ finalists, alreadySelected }: { finalists: F[
               </tr>
             ))}
             {!finalists.length && (
-              <tr><td className="td py-8 text-center text-ink-3" colSpan={7}>No finalists yet. Move shortlisted candidates to finalist from the shortlist pages.</td></tr>
+              <tr><td className="td py-8 text-center text-ink-3" colSpan={8}>No finalists yet. They are assigned automatically once CVs finish processing.</td></tr>
             )}
           </tbody>
         </table>
@@ -94,7 +104,7 @@ export function FinalistSelector({ finalists, alreadySelected }: { finalists: F[
         <div className="fixed inset-0 z-10 flex items-center justify-center bg-ink/30 p-4" role="dialog" aria-modal>
           <div className="card w-full max-w-lg p-5 shadow-lg">
             <h2 className="text-[15px] font-semibold">Confirm selections</h2>
-            <p className="mt-1 text-[13px] text-ink-2">These candidates will be marked <b>Selected</b> and an individual offer draft will be prepared for each. No email is sent now; you'll review, edit and approve each draft first.</p>
+            <p className="mt-1 text-[13px] text-ink-2">These candidates will be marked <b>Selected</b> and an individual offer email will be written for each, ready to send from Communications.</p>
             <ul className="my-3 divide-y divide-line-2 rounded-md border border-line">
               {chosen.map((c) => (
                 <li key={c.id} className="flex items-center justify-between px-3 py-2 text-[13px]">

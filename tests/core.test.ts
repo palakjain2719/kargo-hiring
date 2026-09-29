@@ -126,3 +126,9 @@ test("pii: name falls back to the filename and is redacted from the text", async
   assert.equal(p.name, "Rohan Mehta");
   assert.ok(!/mehta/i.test(p.anonymised));
 });
+
+test("pii: filename name wins over a header line that merely looks like a name", () => {
+  const p = extractPii("Corporate Strategy Lead\nSUMMARY\nCorporate strategy work across three regions, owning the planning cycle end to end.\n".repeat(3), "01_rohan_mehta.pdf");
+  assert.equal(p.name, "Rohan Mehta");
+  assert.ok(/Corporate strategy work/.test(p.anonymised), "content must not be redacted by a wrong name guess");
+});

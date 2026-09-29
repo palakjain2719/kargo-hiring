@@ -52,64 +52,68 @@ export function ActionButton({
 }
 
 export function EmailEditor({
-  draft,
+  draft, to,
 }: {
   draft: { id: string; subject: string; body: string; status: string; edited_by_founder: boolean; sent_at: string | null; error: string | null; email_type: string };
+  to: string | null;
 }) {
   const router = useRouter();
   const [subject, setSubject] = useState(draft.subject);
   const [body, setBody] = useState(draft.body);
+  const [editing, setEditing] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const dirty = subject !== draft.subject || body !== draft.body;
-  const placeholders = [...new Set(`${subject}\n${body}`.match(/\[[A-Z][A-Za-z ]{2,40}\]|\{\{[a-z_]+\}\}/g) ?? [])];
   const sent = draft.status === "sent";
 
-  const run = async (fn: () => Promise<unknown>, okText: string) => {
+  async function send() {
     setBusy(true);
     setMsg(null);
     try {
-      await fn();
-      setMsg({ ok: true, text: okText });
+      if (dirty) await call(`/api/emails/${draft.id}`, "PATCH", { subject, body });
+      const r = await call("/api/emails/send", "POST", { ids: [draft.id], confirmation: "CONFIRM_SEND" });
+      const res = r.results[0];
+      if (!res.ok) throw new Error(res.error);
+      setMsg({ ok: true, text: res.dryRun ? "Dry run: sending is switched off, so nothing was delivered." : `Sent to ${to}.` });
+      setEditing(false);
       router.refresh();
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
     } finally {
       setBusy(false);
     }
-  };
+  }
 
   return (
     <div className="space-y-2">
-      <input className="input w-full font-medium" value={subject} onChange={(e) => setSubject(e.target.value)} disabled={sent} aria-label="Subject" />
-      <textarea className="input min-h-[220px] w-full font-mono text-[12.5px] leading-relaxed" value={body} onChange={(e) => setBody(e.target.value)} disabled={sent} aria-label="Body" />
-      {placeholders.length > 0 && !sent && (
-        <div className="text-xs text-warn">Fill in before approving: {placeholders.join(", ")}</div>
+      <div className="text-xs text-ink-3">To: {to ?? <span className="text-bad">no email address on file</span>}</div>
+      {editing && !sent ? (
+        <>
+          <input className="input w-full font-medium" value={subject} onChange={(e) => setSubject(e.target.value)} aria-label="Subject" />
+          <textarea className="input min-h-[220px] w-full font-mono text-[12.5px] leading-relaxed" value={body} onChange={(e) => setBody(e.target.value)} aria-label="Body" />
+        </>
+      ) : (
+        <div className="rounded-md border border-line bg-surface p-3">
+          <div className="mb-2 font-medium">{subject}</div>
+          <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-ink-2">{body}</pre>
+        </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
         {!sent && (
           <>
-            <button className="btn" disabled={!dirty || busy} onClick={() => run(() => call(`/api/emails/${draft.id}`, "PATCH", { subject, body }), "Saved. Approve again to send.")}>
-              Save edits
+            <button className="btn btn-primary" disabled={busy || !to} onClick={send} title={to ? "" : "No email address on file"}>
+              {busy ? "Sending…" : "Send"}
             </button>
-            {draft.status !== "approved" ? (
-              <button className="btn btn-primary" disabled={dirty || busy || placeholders.length > 0} onClick={() => run(() => call("/api/emails/approve", "POST", { ids: [draft.id] }), "Approved. Send it from Communications.")} title={dirty ? "Save edits first" : ""}>
-                Approve
-              </button>
-            ) : (
-              <button className="btn" disabled={busy} onClick={() => run(() => call("/api/emails/approve", "POST", { ids: [draft.id], approve: false }), "Moved back to draft.")}>
-                Unapprove
-              </button>
-            )}
+            <button className="btn" disabled={busy} onClick={() => setEditing(!editing)}>{editing ? "Done editing" : "Edit (optional)"}</button>
           </>
         )}
         <span className="text-xs text-ink-3">
-          Status: <b className="capitalize text-ink-2">{draft.status}</b>
+          Status: <b className="capitalize text-ink-2">{sent ? "sent" : draft.status === "failed" ? "failed" : "ready to send"}</b>
           {draft.edited_by_founder && " · edited by you"}
-          {draft.sent_at && ` · sent ${new Date(draft.sent_at).toLocaleString()}`}
+          {draft.sent_at && ` · ${new Date(draft.sent_at).toLocaleString()}`}
         </span>
       </div>
-      {draft.error && <div className="text-xs text-bad">Last error: {draft.error}</div>}
+      {draft.error && !msg && <div className="text-xs text-bad">Last error: {draft.error}</div>}
       {msg && <div className={`text-xs ${msg.ok ? "text-good" : "text-bad"}`}>{msg.text}</div>}
     </div>
   );

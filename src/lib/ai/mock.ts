@@ -89,11 +89,14 @@ export function mockAssessment(role: Role, scores: CriterionScore[]): Assessment
   };
 }
 
-export function mockEmail(type: "offer" | "rejection", role: Role, strengths: string[], gaps: string[]): EmailOut {
+export function mockEmail(type: "offer" | "rejection", role: Role, strengthNotes: string[], gapNotes: string[]): EmailOut {
+  // Notes are "Criterion: reasoning"; the mock only uses the criterion name.
+  const strengths = strengthNotes.map((s) => s.split(":")[0]);
+  const gaps = gapNotes.map((g) => g.split(":")[0]);
   if (type === "offer") {
     return {
       subject: `Offer: ${ROLE_LABEL[role]} at Kargo`,
-      body: `Hi {{candidate_name}},\n\nI'm delighted to offer you the ${ROLE_LABEL[role]} role at Kargo. ${strengths[0] ? `What stood out to us was: ${strengths[0]}.` : ""}\n\nCompensation: [Compensation]\nStart date: [Start date]\nPlease let us know by [Response deadline]. A formal offer letter will follow.\n\nArjun Mehta\nFounder, Kargo`,
+      body: `Hi {{candidate_name}},\n\nI'm delighted to offer you the ${ROLE_LABEL[role]} role at Kargo. ${strengths[0] ? `What stood out to us was: ${strengths[0]}.` : ""}\n\nOur formal offer letter with compensation, start date and joining details will follow shortly. Please reply to this email to confirm your interest and we will set up a call.\n\nArjun Mehta\nFounder, Kargo`,
     };
   }
   return {

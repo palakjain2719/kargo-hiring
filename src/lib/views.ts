@@ -10,6 +10,8 @@ export interface CandidateRow {
   id: string;
   name: string;
   applied_role: Role;
+  role_source: Candidate["role_source"];
+  decided_by_founder: boolean;
   file: string;
   created_at: string;
   processing_status: Candidate["processing_status"];
@@ -88,6 +90,8 @@ export async function loadAll() {
       id: c.id,
       name: candidateName(c),
       applied_role: c.applied_role,
+      role_source: c.role_source,
+      decided_by_founder: c.decided_by_founder,
       file: c.original_file_name,
       created_at: c.created_at,
       processing_status: c.processing_status,
