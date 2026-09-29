@@ -213,7 +213,8 @@ export async function autoAssignFinalists() {
   for (const role of ROLES) {
     const pool = candidates
       .filter((c) => c.applied_role === role && c.processing_status === "completed")
-      .filter((c) => ["analysed", "shortlisted", "finalist"].includes(c.workflow_status))
+      // Selected candidates keep their place in the top N, so selecting one doesn't pull the next person up.
+      .filter((c) => ["analysed", "shortlisted", "finalist", "selected"].includes(c.workflow_status))
       .filter((c) => (scoreOf(c) ?? -1) >= settings.min_recommend_score)
       .sort((a, b) => scoreOf(b)! - scoreOf(a)!);
     const top = new Set(pool.slice(0, settings.finalist_count).map((c) => c.id));
